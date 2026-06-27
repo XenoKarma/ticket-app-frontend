@@ -9,12 +9,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { LogOut, User } from 'lucide-react'
+import { isItStaff } from '@/lib/auth'
+interface TopbarProps {
+}
 
-export function Topbar() {
+function getPageTitle(pathname: string, isStaff: boolean): string {
+  if (pathname === '/dashboard') return 'Dashboard'
+  if (pathname === '/tickets') return isStaff ? 'Semua Tiket' : 'Tiket Saya'
+  if (pathname === '/tickets/create') return 'Buat Tiket'
+  if (/^\/tickets\/\d+$/.test(pathname)) return 'Detail Tiket'
+  if (pathname === '/manage') return 'Kelola Tiket'
+  return ''
+}
+
+export function Topbar({}: TopbarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  const isStaff = isItStaff(user)
+  const title = getPageTitle(pathname, isStaff)
 
   const initials = user?.name
     ?.split(' ')
@@ -30,7 +46,13 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-14 items-center justify-end border-b bg-background px-6">
+    <header className="flex h-14 items-center justify-between border-b border-primary/20 bg-background px-6">
+      <div className="flex items-center gap-3">
+        {title && (
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        )}
+      </div>
+
       <DropdownMenu>
         <DropdownMenuTrigger className="flex items-center gap-3 outline-none">
           <div className="text-right">

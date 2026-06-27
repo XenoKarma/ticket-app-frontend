@@ -16,7 +16,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -73,101 +72,96 @@ export default function TicketCreate() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-4 flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate('/tickets')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Buat Tiket Baru</h1>
-          <p className="text-sm text-muted-foreground">
-            Laporkan kendala yang Anda alami
-          </p>
+          <h1 className="text-xl font-bold tracking-tight">Buat Tiket Baru</h1>
+          <p className="text-xs text-muted-foreground">Laporkan kendala yang Anda alami</p>
         </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Form Laporan</CardTitle>
-          <CardDescription>
-            Isi detail kendala dengan lengkap agar mudah ditindaklanjuti
-          </CardDescription>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-base">Form Laporan</CardTitle>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <CardContent className="pt-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
                 {error}
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="category_id">Kategori</Label>
-              <Select
-                name="category_id"
-                value={catId}
-                onValueChange={(v) => setCatId(v || '')}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih kategori">
-                    {categories?.find((c) => String(c.id) === catId)?.name}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {categories?.map((c: any) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Kategori</Label>
+                <Select
+                  name="category_id"
+                  value={catId}
+                  onValueChange={(v) => setCatId(v || '')}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kategori">
+                      {categories?.find((c) => String(c.id) === catId)?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories?.map((c: any) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Prioritas</Label>
+                <Select
+                  name="priority"
+                  value={priority}
+                  onValueChange={(v) => setPriority(v || 'medium')}
+                >
+                  <SelectTrigger>
+                    <SelectValue>{PRIORITY_LABELS[priority]}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="priority">Prioritas</Label>
-              <Select
-                name="priority"
-                value={priority}
-                onValueChange={(v) => setPriority(v || 'medium')}
-              >
-                <SelectTrigger>
-                  <SelectValue>{PRIORITY_LABELS[priority]}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-1">
+              <Label className="text-xs">Judul</Label>
+              <Input name="title" required placeholder="Contoh: Komputer saya mati total" />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="title">Judul</Label>
-              <Input id="title" name="title" required placeholder="Contoh: Komputer saya mati total" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Deskripsi</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Deskripsi</Label>
               <Textarea
-                id="description"
                 name="description"
                 required
                 placeholder="Jelaskan kendala secara detail..."
-                rows={5}
+                rows={2}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Lampiran (opsional, maks {MAX_FILES} file)</Label>
-              <div className="flex items-center gap-2">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <Label
                   htmlFor="file-upload"
-                  className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-4 py-6 text-sm text-muted-foreground hover:bg-muted/50 w-full justify-center"
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-dashed px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/50"
                 >
-                  <Upload className="h-5 w-5" />
-                  Klik untuk upload file
+                  <Upload className="h-3.5 w-3.5" />
+                  Lampirkan file (opsional, maks {MAX_FILES})
                 </Label>
                 <Input
                   id="file-upload"
@@ -178,29 +172,23 @@ export default function TicketCreate() {
                 />
               </div>
               {files.length > 0 && (
-                <div className="space-y-1">
+                <div className="flex flex-wrap gap-1">
                   {files.map((file, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                      className="flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs"
                     >
-                      <span className="truncate">{file.name}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => removeFile(i)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <span className="max-w-[160px] truncate">{file.name}</span>
+                      <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => removeFile(i)}>
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 pt-1">
               <Button type="submit" disabled={isPending}>
                 {isPending ? 'Menyimpan...' : 'Kirim Tiket'}
               </Button>

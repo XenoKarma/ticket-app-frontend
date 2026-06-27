@@ -106,7 +106,7 @@ export default function Dashboard() {
           value={data?.total_tickets ?? 0}
           change={data?.total_tickets_change ?? '0'}
           icon={Ticket}
-          iconClass="text-blue-600 bg-blue-50"
+          iconClass="text-emerald-600 bg-emerald-50"
         />
         <StatCard
           title="Tiket Aktif"

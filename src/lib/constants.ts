@@ -21,9 +21,4 @@ export const STATUS_VARIANTS: Record<string, string> = {
   closed: 'destructive',
 }
 
-export const PRIORITY_COLORS: Record<string, string> = {
-  low: 'text-muted-foreground',
-  medium: 'text-blue-500',
-  high: 'text-orange-500',
-  urgent: 'text-red-500 font-semibold',
-}
+

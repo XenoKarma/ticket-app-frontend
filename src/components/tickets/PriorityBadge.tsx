@@ -7,7 +7,7 @@ interface PriorityBadgeProps {
 
 const priorityStyles: Record<string, string> = {
   low: 'text-gray-500',
-  medium: 'text-blue-600',
+  medium: 'text-emerald-600',
   high: 'text-orange-600',
   urgent: 'text-red-600 font-semibold',
 }
