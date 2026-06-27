@@ -6,6 +6,7 @@ import { PriorityBadge } from '@/components/tickets/PriorityBadge'
 import { TableLoading } from '@/components/shared/Loading'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ErrorState } from '@/components/shared/ErrorState'
+import { DataPagination } from '@/components/shared/DataPagination'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,23 +25,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
 import { PlusCircle, Search } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { isItStaff } from '@/lib/auth'
 
 const statusOptions = [
   { value: '', label: 'Semua Status' },
   { value: 'open', label: 'Open' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'resolved', label: 'Resolved' },
+  { value: 'rejected', label: 'Rejected' },
   { value: 'closed', label: 'Closed' },
 ]
 
@@ -54,12 +46,10 @@ const priorityOptions = [
 
 export default function TicketList() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { user } = useAuth()
   const navigate = useNavigate()
   const { data, isLoading, error, refetch } = useTickets(Object.fromEntries(searchParams))
   const { data: categories } = useCategories()
 
-  const currentPage = Number(searchParams.get('page')) || 1
   const statusFilter = searchParams.get('status') || ''
   const priorityFilter = searchParams.get('priority') || ''
   const categoryFilter = searchParams.get('category') || ''
@@ -80,13 +70,9 @@ export default function TicketList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isItStaff(user) ? 'Semua Tiket' : 'Tiket Saya'}
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight">Semua Tiket</h1>
           <p className="text-sm text-muted-foreground">
-            {isItStaff(user)
-              ? 'Kelola seluruh tiket yang masuk'
-              : 'Lihat dan pantau tiket yang Anda buat'}
+            Kelola seluruh tiket yang masuk
           </p>
         </div>
         <Button onClick={() => navigate('/tickets/create')}>
@@ -112,7 +98,9 @@ export default function TicketList() {
             </div>
             <Select value={statusFilter} onValueChange={(v) => { if (v) updateFilter('status', v) }}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder="Status">
+                  {statusOptions.find((o) => o.value === statusFilter)?.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((o) => (
@@ -124,7 +112,9 @@ export default function TicketList() {
             </Select>
             <Select value={priorityFilter} onValueChange={(v) => { if (v) updateFilter('priority', v) }}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Prioritas" />
+                <SelectValue placeholder="Prioritas">
+                  {priorityOptions.find((o) => o.value === priorityFilter)?.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {priorityOptions.map((o) => (
@@ -136,7 +126,9 @@ export default function TicketList() {
             </Select>
             <Select value={categoryFilter} onValueChange={(v) => { if (v) updateFilter('category', v) }}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Kategori" />
+                <SelectValue placeholder="Kategori">
+                  {categories?.find((c) => String(c.id) === categoryFilter)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Semua Kategori</SelectItem>
@@ -171,7 +163,7 @@ export default function TicketList() {
                     <TableHead>Kategori</TableHead>
                     <TableHead>Prioritas</TableHead>
                     <TableHead>Status</TableHead>
-                    {isItStaff(user) && <TableHead>Pelapor</TableHead>}
+                    <TableHead>Pelapor</TableHead>
                     <TableHead>Tanggal</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
@@ -191,11 +183,9 @@ export default function TicketList() {
                       <TableCell>
                         <StatusBadge status={ticket.status} />
                       </TableCell>
-                      {isItStaff(user) && (
-                        <TableCell className="text-muted-foreground">
-                          {ticket.user?.name}
-                        </TableCell>
-                      )}
+                      <TableCell className="text-muted-foreground">
+                        {ticket.user?.name}
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(ticket.created_at).toLocaleDateString('id-ID')}
                       </TableCell>
@@ -212,38 +202,7 @@ export default function TicketList() {
           </Card>
 
           {data.meta && data.meta.last_page > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => updateFilter('page', String(currentPage - 1))}
-                    className={currentPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    size="default"
-                  />
-                </PaginationItem>
-                {Array.from({ length: data.meta.last_page }, (_, i) => i + 1).map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => updateFilter('page', String(page))}
-                      isActive={page === currentPage}
-                      className="cursor-pointer"
-                      size="default"
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => updateFilter('page', String(currentPage + 1))}
-                    className={
-                      currentPage >= data.meta.last_page ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-                    }
-                    size="default"
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+            <DataPagination meta={data.meta} onPageChange={(p) => updateFilter('page', String(p))} />
           )}
         </>
       )}

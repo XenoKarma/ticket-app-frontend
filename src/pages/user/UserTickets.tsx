@@ -1,12 +1,13 @@
-import { useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTickets } from '@/hooks/useTickets'
+import { useCategories } from '@/hooks/useCategories'
 import { StatusBadge } from '@/components/tickets/StatusBadge'
 import { PriorityBadge } from '@/components/tickets/PriorityBadge'
 import { TableLoading } from '@/components/shared/Loading'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ErrorState } from '@/components/shared/ErrorState'
 import { DataPagination } from '@/components/shared/DataPagination'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -24,10 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search } from 'lucide-react'
-import api from '@/lib/axios'
-import { STATUS_LABELS } from '@/lib/constants'
-import { toast } from 'sonner'
+import { PlusCircle, Search } from 'lucide-react'
 
 const statusOptions = [
   { value: '', label: 'Semua Status' },
@@ -38,42 +36,49 @@ const statusOptions = [
   { value: 'closed', label: 'Closed' },
 ]
 
-export default function TicketManage() {
+const priorityOptions = [
+  { value: '', label: 'Semua Prioritas' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' },
+]
+
+export default function UserTickets() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data, isLoading, error, refetch } = useTickets({ ...Object.fromEntries(searchParams), all: '1' })
-  const [statusLoading, setStatusLoading] = useState<number | null>(null)
+  const navigate = useNavigate()
+  const { data, isLoading, error, refetch } = useTickets(Object.fromEntries(searchParams))
+  const { data: categories } = useCategories()
 
   const statusFilter = searchParams.get('status') || ''
+  const priorityFilter = searchParams.get('priority') || ''
+  const categoryFilter = searchParams.get('category') || ''
   const searchQuery = searchParams.get('search') || ''
 
   function updateFilter(key: string, value: string) {
     const params = new URLSearchParams(searchParams)
-    if (value) params.set(key, value)
-    else params.delete(key)
+    if (value) {
+      params.set(key, value)
+    } else {
+      params.delete(key)
+    }
     if (key !== 'page') params.delete('page')
     setSearchParams(params)
   }
 
-  async function quickStatus(ticketId: number, status: string) {
-    setStatusLoading(ticketId)
-    try {
-      await api.patch(`/tickets/${ticketId}/status`, { status })
-      toast.success('Status diupdate')
-      refetch()
-    } catch {
-      toast.error('Gagal update status')
-    } finally {
-      setStatusLoading(null)
-    }
-  }
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Kelola Tiket</h1>
-        <p className="text-sm text-muted-foreground">
-          Atur status dan assign tiket untuk IT Staff
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Tiket Saya</h1>
+          <p className="text-sm text-muted-foreground">
+            Lihat dan pantau tiket yang Anda buat
+          </p>
+        </div>
+        <Button onClick={() => navigate('/tickets/create')}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Tiket Baru
+        </Button>
       </div>
 
       <Card>
@@ -105,6 +110,35 @@ export default function TicketManage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={priorityFilter} onValueChange={(v) => { if (v) updateFilter('priority', v) }}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Prioritas">
+                  {priorityOptions.find((o) => o.value === priorityFilter)?.label}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {priorityOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={(v) => { if (v) updateFilter('category', v) }}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Kategori">
+                  {categories?.find((c) => String(c.id) === categoryFilter)?.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Semua Kategori</SelectItem>
+                {categories?.map((c: any) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -114,7 +148,10 @@ export default function TicketManage() {
       ) : error ? (
         <ErrorState onRetry={refetch} />
       ) : !data?.data?.length ? (
-        <EmptyState title="Tidak ada tiket" />
+        <EmptyState
+          title="Tidak ada tiket"
+          description="Belum ada tiket yang sesuai dengan filter Anda."
+        />
       ) : (
         <>
           <Card>
@@ -123,50 +160,35 @@ export default function TicketManage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Judul</TableHead>
-                    <TableHead>Pelapor</TableHead>
+                    <TableHead>Kategori</TableHead>
                     <TableHead>Prioritas</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Assignee</TableHead>
-                    <TableHead className="text-right">Aksi Cepat</TableHead>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data.data.map((ticket) => (
                     <TableRow key={ticket.id}>
-                      <TableCell className="font-medium max-w-[200px] truncate">
-                        <Link to={`/tickets/${ticket.id}`} className="hover:underline">
-                          {ticket.title}
-                        </Link>
+                      <TableCell className="font-medium max-w-[250px] truncate">
+                        {ticket.title}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{ticket.user?.name}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {ticket.category?.name}
+                      </TableCell>
                       <TableCell>
                         <PriorityBadge priority={ticket.priority} />
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={ticket.status} />
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {ticket.assignee?.name || '-'}
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(ticket.created_at).toLocaleDateString('id-ID')}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Select
-                          value={ticket.status}
-                          onValueChange={(v) => { if (v) quickStatus(ticket.id, v as string) }}
-                          disabled={statusLoading === ticket.id}
-                        >
-                          <SelectTrigger className="w-[130px] ml-auto">
-                            <SelectValue>
-                              {STATUS_LABELS[ticket.status] || ticket.status}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="open">Open</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="resolved">Resolved</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/tickets/${ticket.id}`)}>
+                          Detail
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

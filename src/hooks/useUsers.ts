@@ -6,6 +6,6 @@ export function useItStaff() {
   return useQuery({
     queryKey: ['users', 'it-staff'],
     queryFn: () =>
-      api.get<User[]>('/users/it-staff').then((r) => r.data),
+      api.get<{ data: User[] }>('/users/it-staff').then((r) => r.data.data),
   })
 }

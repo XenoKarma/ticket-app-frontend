@@ -4,9 +4,9 @@ import type { Comment, CreateCommentInput } from '@/types'
 
 export function useComments(ticketId: number) {
   return useQuery({
-    queryKey: ['tickets', ticketId, 'comments'],
+    queryKey: ['tickets', 'detail', ticketId, 'comments'],
     queryFn: () =>
-      api.get<Comment[]>(`/tickets/${ticketId}/comments`).then((r) => r.data),
+      api.get<{ data: Comment[] }>(`/tickets/${ticketId}/comments`).then((r) => r.data.data),
   })
 }
 
@@ -16,8 +16,8 @@ export function useCreateComment(ticketId: number) {
     mutationFn: (input: CreateCommentInput) =>
       api.post<Comment>(`/tickets/${ticketId}/comments`, input),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tickets', ticketId, 'comments'] })
-      qc.invalidateQueries({ queryKey: ['tickets', ticketId] })
+      qc.invalidateQueries({ queryKey: ['tickets', 'detail', ticketId, 'comments'] })
+      qc.invalidateQueries({ queryKey: ['tickets', 'detail', ticketId] })
     },
   })
 }

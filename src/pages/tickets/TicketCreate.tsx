@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { ArrowLeft, Upload, X } from 'lucide-react'
+import { PRIORITY_LABELS } from '@/lib/constants'
 const MAX_FILES = 5
 const MAX_SIZE = 5 * 1024 * 1024
 
@@ -30,6 +31,8 @@ export default function TicketCreate() {
   const { mutateAsync: createTicket, isPending } = useCreateTicket()
   const [files, setFiles] = useState<File[]>([])
   const [error, setError] = useState('')
+  const [catId, setCatId] = useState('')
+  const [priority, setPriority] = useState('medium')
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files || [])
@@ -100,9 +103,16 @@ export default function TicketCreate() {
 
             <div className="space-y-2">
               <Label htmlFor="category_id">Kategori</Label>
-              <Select name="category_id" required>
+              <Select
+                name="category_id"
+                value={catId}
+                onValueChange={(v) => setCatId(v || '')}
+                required
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih kategori" />
+                  <SelectValue placeholder="Pilih kategori">
+                    {categories?.find((c) => String(c.id) === catId)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {categories?.map((c: any) => (
@@ -116,9 +126,13 @@ export default function TicketCreate() {
 
             <div className="space-y-2">
               <Label htmlFor="priority">Prioritas</Label>
-              <Select name="priority" defaultValue="medium">
+              <Select
+                name="priority"
+                value={priority}
+                onValueChange={(v) => setPriority(v || 'medium')}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue>{PRIORITY_LABELS[priority]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>

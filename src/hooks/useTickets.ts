@@ -5,7 +5,7 @@ import type { Ticket, PaginatedResponse, CreateTicketInput } from '@/types'
 export function useTickets(params?: Record<string, string>) {
   const searchParams = new URLSearchParams(params)
   return useQuery({
-    queryKey: ['tickets', params],
+    queryKey: ['tickets', 'list', params],
     queryFn: () =>
       api.get<PaginatedResponse<Ticket>>(`/tickets?${searchParams}`).then((r) => r.data),
   })
@@ -13,8 +13,8 @@ export function useTickets(params?: Record<string, string>) {
 
 export function useTicket(id: number) {
   return useQuery({
-    queryKey: ['tickets', id],
-    queryFn: () => api.get<Ticket>(`/tickets/${id}`).then((r) => r.data),
+    queryKey: ['tickets', 'detail', id],
+    queryFn: () => api.get<{ data: Ticket }>(`/tickets/${id}`).then((r) => r.data.data),
   })
 }
 
@@ -32,7 +32,7 @@ export function useCreateTicket() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tickets'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tickets', 'list'] }),
   })
 }
 
@@ -41,8 +41,8 @@ export function useUpdateTicket(id: number) {
   return useMutation({
     mutationFn: (data: Partial<Ticket>) => api.put<Ticket>(`/tickets/${id}`, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tickets'] })
-      qc.invalidateQueries({ queryKey: ['tickets', id] })
+      qc.invalidateQueries({ queryKey: ['tickets', 'list'] })
+      qc.invalidateQueries({ queryKey: ['tickets', 'detail', id] })
     },
   })
 }
@@ -52,8 +52,8 @@ export function useUpdateStatus(id: number) {
   return useMutation({
     mutationFn: (status: string) => api.patch<Ticket>(`/tickets/${id}/status`, { status }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tickets'] })
-      qc.invalidateQueries({ queryKey: ['tickets', id] })
+      qc.invalidateQueries({ queryKey: ['tickets', 'list'] })
+      qc.invalidateQueries({ queryKey: ['tickets', 'detail', id] })
     },
   })
 }
@@ -64,16 +64,16 @@ export function useAssignTicket(id: number) {
     mutationFn: (assigned_to: number) =>
       api.patch<Ticket>(`/tickets/${id}/assign`, { assigned_to }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tickets'] })
-      qc.invalidateQueries({ queryKey: ['tickets', id] })
+      qc.invalidateQueries({ queryKey: ['tickets', 'list'] })
+      qc.invalidateQueries({ queryKey: ['tickets', 'detail', id] })
     },
   })
 }
 
-export function useDeleteTicket(id: number) {
+export function useDeleteTicket() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api.delete(`/tickets/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tickets'] }),
+    mutationFn: (id: number) => api.delete(`/tickets/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tickets', 'list'] }),
   })
 }

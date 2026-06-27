@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTicket, useUpdateStatus, useAssignTicket, useDeleteTicket } from '@/hooks/useTickets'
 import { useComments, useCreateComment } from '@/hooks/useComments'
+import { useItStaff } from '@/hooks/useUsers'
 import { useAuth } from '@/contexts/AuthContext'
 import { isItStaff, isHeadIt } from '@/lib/auth'
 import { StatusBadge } from '@/components/tickets/StatusBadge'
@@ -20,8 +21,17 @@ import {
 } from '@/components/ui/select'
 import { PageLoading } from '@/components/shared/Loading'
 import { ErrorState } from '@/components/shared/ErrorState'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ArrowLeft, Send, Trash2, Download, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
+import { STATUS_LABELS } from '@/lib/constants'
 
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>()
@@ -30,11 +40,21 @@ export default function TicketDetail() {
   const ticketId = Number(id)
   const { data: ticket, isLoading, error, refetch } = useTicket(ticketId)
   const { data: comments, refetch: refetchComments } = useComments(ticketId)
+  const { data: itStaff } = useItStaff()
   const { mutateAsync: updateStatus } = useUpdateStatus(ticketId)
   const { mutateAsync: assignTicket } = useAssignTicket(ticketId)
-  const { mutateAsync: deleteTicket } = useDeleteTicket(ticketId)
+  const { mutateAsync: deleteTicket } = useDeleteTicket()
   const { mutateAsync: addComment, isPending: commentPending } = useCreateComment(ticketId)
   const [commentBody, setCommentBody] = useState('')
+  const [assignValue, setAssignValue] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  useEffect(() => {
+    if (ticket?.assignee) {
+      setAssignValue(String(ticket.assignee.id))
+    }
+  }, [ticket?.assignee?.id])
 
   if (isLoading) return <PageLoading />
   if (error) return <ErrorState onRetry={refetch} />
@@ -53,10 +73,17 @@ export default function TicketDetail() {
   }
 
   async function handleDelete() {
-    if (!confirm('Yakin ingin menghapus tiket ini?')) return
-    await deleteTicket()
-    toast.success('Tiket berhasil dihapus')
-    navigate('/tickets')
+    setDeleteLoading(true)
+    try {
+      await deleteTicket(ticketId)
+      setDeleteDialogOpen(false)
+      toast.success('Tiket berhasil dihapus')
+      navigate('/tickets')
+    } catch (err: any) {
+      setDeleteDialogOpen(false)
+      setDeleteLoading(false)
+      toast.error(err.response?.data?.message || 'Gagal menghapus tiket.')
+    }
   }
 
   async function handleComment(e: React.FormEvent) {
@@ -216,43 +243,73 @@ export default function TicketDetail() {
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Update Status</label>
                   <Select
-                    defaultValue={ticket?.status}
+                    value={ticket?.status || 'open'}
                     onValueChange={(v) => { if (v) handleStatusChange(v as string) }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>{STATUS_LABELS[ticket?.status || 'open']}</SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="resolved">Resolved</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
-                    </SelectContent>
+                      <SelectContent>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Assign ke</label>
-                  <Select onValueChange={(v) => { if (v) handleAssign(v as string) }}>
+                  <Select
+                    value={assignValue}
+                    onValueChange={(v) => { if (v) { setAssignValue(v); handleAssign(v as string) } }}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih IT Staff..." />
+                      <SelectValue placeholder="Pilih IT Staff...">
+                        {assignValue && (itStaff?.find((u) => String(u.id) === assignValue)?.name || 'Saya sendiri')}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={String(user?.id)}>Saya sendiri</SelectItem>
+                      {itStaff?.map((staff) => (
+                        <SelectItem key={staff.id} value={String(staff.id)}>
+                          {staff.name} ({staff.role === 'head_it' ? 'Head IT' : 'IT Staff'})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 {(isOwner || isHeadIt(user)) && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="w-full"
-                    onClick={handleDelete}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Hapus Tiket
-                  </Button>
+                  <>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Hapus Tiket
+                    </Button>
+                    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Hapus Tiket</DialogTitle>
+                          <DialogDescription>
+                            Apakah Anda yakin ingin menghapus tiket <strong>"{ticket?.title}"</strong>? Tindakan ini tidak dapat dibatalkan.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                            Batal
+                          </Button>
+                          <Button variant="destructive" onClick={handleDelete} disabled={deleteLoading}>
+                            {deleteLoading ? 'Menghapus...' : 'Hapus'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </>
                 )}
               </CardContent>
             </Card>

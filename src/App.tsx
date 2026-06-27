@@ -1,12 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { isItStaff } from '@/lib/auth'
 import { Toaster } from 'sonner'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import Dashboard from '@/pages/Dashboard'
 import TicketList from '@/pages/tickets/TicketList'
+import UserTickets from '@/pages/user/UserTickets'
+import UserDashboard from '@/pages/user/UserDashboard'
 import TicketCreate from '@/pages/tickets/TicketCreate'
 import TicketDetail from '@/pages/tickets/TicketDetail'
 import TicketManage from '@/pages/tickets/TicketManage'
@@ -21,6 +24,16 @@ const queryClient = new QueryClient({
   },
 })
 
+function DashboardRoute() {
+  const { user } = useAuth()
+  return isItStaff(user) ? <Dashboard /> : <UserDashboard />
+}
+
+function TicketsRoute() {
+  const { user } = useAuth()
+  return isItStaff(user) ? <TicketList /> : <UserTickets />
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -30,8 +43,8 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/tickets" element={<TicketList />} />
+              <Route path="/dashboard" element={<DashboardRoute />} />
+              <Route path="/tickets" element={<TicketsRoute />} />
               <Route path="/tickets/create" element={<TicketCreate />} />
               <Route path="/tickets/:id" element={<TicketDetail />} />
               <Route path="/manage" element={<TicketManage />} />

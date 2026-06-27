@@ -37,7 +37,7 @@ export interface Ticket {
   assignee: User | null
   title: string
   description: string
-  status: 'open' | 'in_progress' | 'resolved' | 'closed'
+  status: 'open' | 'in_progress' | 'resolved' | 'rejected' | 'closed'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   attachments: TicketAttachment[]
   comments: Comment[]
@@ -67,6 +67,11 @@ export interface PaginatedResponse<T> {
 
 export interface DashboardData {
   total_tickets: number
+  total_tickets_change: string
+  active_tickets: number
+  active_tickets_change: string
+  completed_tickets: number
+  completed_tickets_change: string
   status_counts: Record<Ticket['status'], number>
   priority_counts: Record<Ticket['priority'], number>
   recent_tickets: Ticket[]
